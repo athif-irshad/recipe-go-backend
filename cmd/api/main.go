@@ -10,7 +10,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/jackc/pgx/v5"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 const version = "1.0.0"
@@ -34,30 +34,24 @@ type application struct {
 func main() {
 	// Declare an instance of the config struct.
 	var cfg config
-	// Read the value of the port and env command-line flags into the config struct. We
-	// default to using the port number 4000 and the environment "development" if no
-	// corresponding flags are provided.
 	flag.IntVar(&cfg.port, "port", 4000, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 	flag.StringVar(&cfg.db.dsn, "db-dsn", os.Getenv("DB_DSN"), "PostgreSQL DSN")
-	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
-	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL max idle connections")
 	flag.Parse()
 
 	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
 	// Declare an instance of the application struct, containing the config struct and
 	// the logger.
+	DB, err := openDB(cfg)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	defer DB.Close()
+	logger.Printf("database connection pool established")
 	app := &application{
 		config: cfg,
 		logger: logger,
 	}
-
-	DB, err := pgx.Connect(context.Background(), cfg.db.dsn)
-	if err != nil {
-		app.logger.Fatal("Unable to connect to database: ", err)
-	}
-	defer DB.Close(context.Background())
-	logger.Printf("database connection pool established")
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.port),
@@ -73,21 +67,23 @@ func main() {
 }
 
 func openDB(cfg config) (*sql.DB, error) {
-	db, err := sql.Open("postgres", cfg.db.dsn)
+	DB, err := sql.Open("pgx", cfg.db.dsn)
 	if err != nil {
 		return nil, err
 	}
-	// Create a context with a 5-second timeout deadline.
+	DB.SetMaxOpenConns(cfg.db.maxOpenConns)
+	DB.SetMaxIdleConns(cfg.db.maxIdleConns)
+	duration, err := time.ParseDuration(cfg.db.maxIdleTime)
+	if err != nil {
+		return nil, err
+	}
+	DB.SetConnMaxIdleTime(duration)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	// Use PingContext() to establish a new connection to the database, passing in the
-	// context we created above as a parameter. If the connection couldn't be
-	// established successfully within the 5 second deadline, then this will return an
-	// error.
-	err = db.PingContext(ctx)
+
+	err = DB.PingContext(ctx)
 	if err != nil {
 		return nil, err
 	}
-	// Return the sql.DB connection pool.
-	return db, nil
+	return DB, nil
 }

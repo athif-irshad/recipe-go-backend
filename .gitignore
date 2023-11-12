@@ -4,6 +4,8 @@
 # Ignore postgres-data folder
 /postgres-data
 
+/migrations
+
 # Ignore .env files
 *.env
 
