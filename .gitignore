@@ -1,0 +1,11 @@
+# Ignore SQL folder
+/sql
+
+# Ignore postgres-data folder
+/postgres-data
+
+# Ignore .env files
+*.env
+
+# Ignore largefile.json
+largefile.json
