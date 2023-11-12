@@ -10,14 +10,13 @@ import (
 	"recipe.athif.com/internal/validator"
 )
 
-
 func (app *application) createRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Title      string    `json:"title"`
 		PrepTime   data.Mins `json:"preparation_time"`
 		CookTime   data.Mins `json:"cooking_time"`
 		CuisineID  int32     `json:"cuisine_id"`
-		Difficulty int16     `json:"difficulty"`
+		Difficulty string     `json:"difficulty"`
 	}
 	err := app.readJSON(w, r, &input)
 	if err != nil {
@@ -25,19 +24,28 @@ func (app *application) createRecipeHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	recipe:= &data.Recipe{
-	Title:      input.Title,   
-	PrepTime:   input.PrepTime,
-	CookTime:   input.CookTime,
-	CuisineID:  input.CuisineID,
-	Difficulty: input.Difficulty,
+	recipe := &data.Recipe{
+		Title:      input.Title,
+		PrepTime:   input.PrepTime,
+		CookTime:   input.CookTime,
+		CuisineID:  input.CuisineID,
+		Difficulty: input.Difficulty,
 	}
 
 	v := validator.New()
-	if data.ValidateRecipe(v,recipe);!v.Valid() {
+	if data.ValidateRecipe(v, recipe); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
+
+	err = app.models.Recipes.Insert(recipe)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	headers := make(http.Header)
+	headers.Set("Location", fmt.Sprintf("/v1/recipes/%d", recipe.ID))
 
 	fmt.Fprintf(w, "%+v\n", input)
 }
@@ -56,7 +64,7 @@ func (app *application) showRecipeHandler(w http.ResponseWriter, r *http.Request
 		PrepTime:   15,
 		CookTime:   25,
 		CuisineID:  6,
-		Difficulty: 2,
+		Difficulty: "Easy",
 		Version:    1,
 	}
 
