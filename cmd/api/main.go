@@ -10,7 +10,7 @@ import (
 	"os"
 	"time"
 
-	_ "github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5"
 )
 
 const version = "1.0.0"
