@@ -110,7 +110,7 @@ func (m RecipeModel) Delete(id int64) error {
 	if err != nil {
 		return err
 	}
-	rowsAffected, err := result.RowsAffected()
+	rowsAffected, _ := result.RowsAffected()
 	if rowsAffected == 0 {
 		return ErrRecordNotFound
 	}

@@ -161,3 +161,30 @@ func (app *application) deleteRecipeHandler(w http.ResponseWriter, r *http.Reque
 		app.serverErrorResponse(w, r, err)
 	}
 }
+
+func (app *application) listRecipeHandler(w http.ResponseWriter, r *http.Request) {
+
+	var input struct {
+		Title     string
+		CuisineID int
+		data.Filters
+	}
+	v := validator.New()
+
+	qs := r.URL.Query()
+
+	input.Title = app.readString(qs, "title", "")
+	input.CuisineID = app.readInt(qs, "CuisineID", 1, v)
+
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "pagesize", 20, v)
+
+	input.Filters.Sort = app.readString(qs, "sort", "id")
+	input.Filters.SortSafelist = []string{"id", "title", "difficulty", "-id", "-title", "-year", "-difficulty"}
+
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+	fmt.Fprintf(w, "%+v\n", input)
+}
