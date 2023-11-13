@@ -123,13 +123,11 @@ func (app *application) updateRecipeHandler(w http.ResponseWriter, r *http.Reque
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
-	// Pass the updated movie record to our new Update() method.
 	err = app.models.Recipes.Update(recipe)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-	// Write the updated movie record in a JSON response.
 	err = app.writeJSON(w, http.StatusOK, envelope{"recipe": recipe}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
@@ -137,14 +135,12 @@ func (app *application) updateRecipeHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (app *application) deleteRecipeHandler(w http.ResponseWriter, r *http.Request) {
-	// Extract the movie ID from the URL.
 	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
 	}
-	// Delete the movie from the database, sending a 404 Not Found response to the
-	// client if there isn't a matching record.
+
 	err = app.models.Recipes.Delete(id)
 	if err != nil {
 		switch {
@@ -174,7 +170,7 @@ func (app *application) listRecipeHandler(w http.ResponseWriter, r *http.Request
 	qs := r.URL.Query()
 
 	input.Title = app.readString(qs, "title", "")
-	input.CuisineID = app.readInt(qs, "CuisineID", 1, v)
+	input.CuisineID = app.readInt(qs, "cuisineid", 0, v)
 
 	input.Filters.Page = app.readInt(qs, "page", 1, v)
 	input.Filters.PageSize = app.readInt(qs, "pagesize", 20, v)
@@ -186,5 +182,14 @@ func (app *application) listRecipeHandler(w http.ResponseWriter, r *http.Request
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
-	fmt.Fprintf(w, "%+v\n", input)
+
+	recipes, err := app.models.Recipes.GetAll(input.Title, input.CuisineID, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	err = app.writeJSON(w, http.StatusOK, envelope{"recipes": recipes}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }

@@ -49,7 +49,7 @@ func (r RecipeModel) Insert(recipe *Recipe) error {
 	return r.DB.QueryRowContext(ctx, query, args...).Scan(&recipe.ID)
 }
 
-func (m RecipeModel) Get(id int64) (*Recipe, error) {
+func (r RecipeModel) Get(id int64) (*Recipe, error) {
 	if id < 1 {
 		return nil, ErrRecordNotFound
 	}
@@ -62,7 +62,7 @@ func (m RecipeModel) Get(id int64) (*Recipe, error) {
 	recipe := &Recipe{}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	err := m.DB.QueryRowContext(ctx, query, id).Scan(&recipe.ID, &recipe.Title, &recipe.Instructions, &recipe.PrepTime, &recipe.CookTime, &recipe.Difficulty, &recipe.CuisineID)
+	err := r.DB.QueryRowContext(ctx, query, id).Scan(&recipe.ID, &recipe.Title, &recipe.Instructions, &recipe.PrepTime, &recipe.CookTime, &recipe.Difficulty, &recipe.CuisineID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrRecordNotFound
@@ -74,8 +74,7 @@ func (m RecipeModel) Get(id int64) (*Recipe, error) {
 	return recipe, nil
 }
 
-// Add a placeholder method for updating a specific record in the movies table.
-func (m RecipeModel) Update(recipe *Recipe) error {
+func (r RecipeModel) Update(recipe *Recipe) error {
 	query := `
 	UPDATE recipes
 	SET recipename = $1, instructions = $2, preparationtime = $3, cookingtime = $4, difficultylevel = $5, cuisineid = $6
@@ -86,7 +85,7 @@ func (m RecipeModel) Update(recipe *Recipe) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	err := m.DB.QueryRowContext(ctx, query, args...).Scan()
+	err := r.DB.QueryRowContext(ctx, query, args...).Scan()
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -99,14 +98,13 @@ func (m RecipeModel) Update(recipe *Recipe) error {
 	return nil
 }
 
-// Add a placeholder method for deleting a specific record from the movies table.
-func (m RecipeModel) Delete(id int64) error {
+func (r RecipeModel) Delete(id int64) error {
 	query := `DELETE FROM recipes WHERE recipeid = $1`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	result, err := m.DB.ExecContext(ctx, query, id)
+	result, err := r.DB.ExecContext(ctx, query, id)
 	if err != nil {
 		return err
 	}
@@ -116,4 +114,47 @@ func (m RecipeModel) Delete(id int64) error {
 	}
 
 	return nil
+}
+
+func (r RecipeModel) GetAll(title string, cuisineID int, filters Filters) ([]*Recipe, error) {
+
+	query := `
+    SELECT recipeid, recipename, instructions, preparationtime, cookingtime, difficultylevel, cuisineid
+    FROM recipes
+    WHERE (LOWER(recipename) LIKE LOWER($1) OR $1 = '')
+    AND (cuisineid = $2 OR $2 = 0)
+    ORDER BY recipeid `
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	rows, err := r.DB.QueryContext(ctx, query, "%"+title+"%", cuisineID)
+		if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	recipes := []*Recipe{}
+	for rows.Next() {
+		var recipe Recipe
+		err := rows.Scan(
+			&recipe.ID,
+			&recipe.Title,
+			&recipe.Instructions,
+			&recipe.PrepTime,
+			&recipe.CookTime,
+			&recipe.Difficulty,
+			&recipe.CuisineID,
+		)
+		if err != nil {
+			return nil, err
+		}
+		recipes = append(recipes, &recipe)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return recipes, nil
 }
