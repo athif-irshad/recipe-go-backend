@@ -12,11 +12,12 @@ import (
 
 func (app *application) createRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Title      string    `json:"title"`
-		PrepTime   data.Mins `json:"preparation_time"`
-		CookTime   data.Mins `json:"cooking_time"`
-		CuisineID  int32     `json:"cuisine_id"`
-		Difficulty string    `json:"difficulty"`
+		Title        string    `json:"title"`
+		Instructions string    `json:"instructions"`
+		PrepTime     data.Mins `json:"preparation_time"`
+		CookTime     data.Mins `json:"cooking_time"`
+		CuisineID    int32     `json:"cuisine_id"`
+		Difficulty   string    `json:"difficulty"`
 	}
 	err := app.readJSON(w, r, &input)
 	if err != nil {
@@ -25,11 +26,12 @@ func (app *application) createRecipeHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	recipe := &data.Recipe{
-		Title:      input.Title,
-		PrepTime:   input.PrepTime,
-		CookTime:   input.CookTime,
-		CuisineID:  input.CuisineID,
-		Difficulty: input.Difficulty,
+		Title:        input.Title,
+		Instructions: input.Instructions,
+		PrepTime:     input.PrepTime,
+		CookTime:     input.CookTime,
+		CuisineID:    input.CuisineID,
+		Difficulty:   input.Difficulty,
 	}
 
 	v := validator.New()
@@ -96,11 +98,12 @@ func (app *application) updateRecipeHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	var input struct {
-		Title      string
-		PrepTime   data.Mins
-		CookTime   data.Mins
-		CuisineID  int32
-		Difficulty string
+		Title        string
+		Instructions string
+		PrepTime     data.Mins
+		CookTime     data.Mins
+		CuisineID    int32
+		Difficulty   string
 	}
 
 	err = app.readJSON(w, r, &input)
@@ -110,6 +113,7 @@ func (app *application) updateRecipeHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	recipe.Title = input.Title
+	recipe.Instructions = input.Instructions
 	recipe.PrepTime = input.PrepTime
 	recipe.CookTime = input.CookTime
 	recipe.CuisineID = input.CuisineID

@@ -10,13 +10,13 @@ import (
 )
 
 type Recipe struct {
-	ID         int64     `json:"id"`
-	CreatedAt  time.Time `json:"-"`
-	Title      string    `json:"title"`
-	PrepTime   Mins      `json:"preparation_time"`
-	CookTime   Mins      `json:"cooking_time"`
-	CuisineID  int32     `json:"cuisine_id"`
-	Difficulty string    `json:"difficulty"`
+	ID           int64  `json:"id"`
+	Title        string `json:"title"`
+	Instructions string `json:"instructions"`
+	PrepTime     Mins   `json:"preparation_time"`
+	CookTime     Mins   `json:"cooking_time"`
+	CuisineID    int32  `json:"cuisine_id"`
+	Difficulty   string `json:"difficulty"`
 }
 
 func ValidateRecipe(v *validator.Validator, recipe *Recipe) {
@@ -28,6 +28,7 @@ func ValidateRecipe(v *validator.Validator, recipe *Recipe) {
 	v.Check(recipe.CookTime > 0, "cooking_time", "must be a positive integer")
 	v.Check(recipe.CuisineID != 0, "cuisine_id", "must be provided")
 	v.Check(recipe.Difficulty != "", "difficulty", "must be provided")
+	v.Check(recipe.Difficulty != "", "instructions", "must be provided")
 }
 
 type RecipeModel struct {
@@ -36,11 +37,12 @@ type RecipeModel struct {
 
 func (r RecipeModel) Insert(recipe *Recipe) error {
 	query := `
-	INSERT INTO recipes (recipename, preparationtime, cookingtime, difficultylevel, cuisineid)
-	VALUES ($1, $2, $3, $4, $5)
+	INSERT INTO recipes (recipename, instructions, preparationtime, cookingtime, difficultylevel, cuisineid)
+	VALUES ($1, $2, $3, $4, $5, $6)
 	RETURNING recipeid`
 
-	args := []interface{}{recipe.Title, recipe.PrepTime, recipe.CookTime, recipe.Difficulty, recipe.CuisineID}
+	args := []interface{}{recipe.Title, recipe.Instructions, recipe.PrepTime, recipe.CookTime, recipe.Difficulty, recipe.CuisineID}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -53,14 +55,14 @@ func (m RecipeModel) Get(id int64) (*Recipe, error) {
 	}
 
 	query := `
-    SELECT recipeid, recipename, preparationtime, cookingtime, difficultylevel, cuisineid
-    FROM recipes
-    WHERE recipeid = $1`
+	SELECT recipeid, recipename, instructions, preparationtime, cookingtime, difficultylevel, cuisineid
+	FROM recipes
+	WHERE recipeid = $1`
 
 	recipe := &Recipe{}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	err := m.DB.QueryRowContext(ctx, query, id).Scan(&recipe.ID, &recipe.Title, &recipe.PrepTime, &recipe.CookTime, &recipe.Difficulty, &recipe.CuisineID)
+	err := m.DB.QueryRowContext(ctx, query, id).Scan(&recipe.ID, &recipe.Title, &recipe.Instructions, &recipe.PrepTime, &recipe.CookTime, &recipe.Difficulty, &recipe.CuisineID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrRecordNotFound
@@ -75,11 +77,11 @@ func (m RecipeModel) Get(id int64) (*Recipe, error) {
 // Add a placeholder method for updating a specific record in the movies table.
 func (m RecipeModel) Update(recipe *Recipe) error {
 	query := `
-    UPDATE recipes
-    SET recipename = $1, preparationtime = $2, cookingtime = $3, difficultylevel = $4, cuisineid = $5
-    WHERE recipeid = $6`
+	UPDATE recipes
+	SET recipename = $1, instructions = $2, preparationtime = $3, cookingtime = $4, difficultylevel = $5, cuisineid = $6
+	WHERE recipeid = $7`
 
-	args := []interface{}{recipe.Title, recipe.PrepTime, recipe.CookTime, recipe.Difficulty, recipe.CuisineID, recipe.ID}
+	args := []interface{}{recipe.Title, recipe.Instructions, recipe.PrepTime, recipe.CookTime, recipe.Difficulty, recipe.CuisineID, recipe.ID}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
