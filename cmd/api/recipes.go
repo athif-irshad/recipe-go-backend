@@ -176,8 +176,7 @@ func (app *application) listRecipeHandler(w http.ResponseWriter, r *http.Request
 	input.Filters.PageSize = app.readInt(qs, "pagesize", 20, v)
 
 	input.Filters.Sort = app.readString(qs, "sort", "id")
-	input.Filters.SortSafelist = []string{"id", "title", "difficulty", "-id", "-title", "-year", "-difficulty"}
-
+	input.Filters.SortSafelist = []string{"id", "title", "difficulty", "cuisinename", "-id", "-title", "-difficulty", "-cuisinename"}
 	if data.ValidateFilters(v, input.Filters); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
