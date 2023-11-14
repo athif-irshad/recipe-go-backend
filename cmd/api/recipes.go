@@ -11,14 +11,23 @@ import (
 )
 
 func (app *application) createRecipeHandler(w http.ResponseWriter, r *http.Request) {
-	var input struct {
-		Title        string    `json:"title"`
-		Instructions string    `json:"instructions"`
-		PrepTime     data.Mins `json:"preparation_time"`
-		CookTime     data.Mins `json:"cooking_time"`
-		CuisineName  string    `json:"cuisine_name"` // Change this line
-		Difficulty   string    `json:"difficulty"`
-	}
+	type Ingredient struct {
+        Name   string `json:"name"`
+        Quantity string `json:"quantity"`
+        Unit string `json:"unit"`
+    }
+
+    type inputData struct {
+        Title        string      `json:"title"`
+        Instructions string      `json:"instructions"`
+        PrepTime     data.Mins   `json:"preparation_time"`
+        CookTime     data.Mins   `json:"cooking_time"`
+        CuisineName  string      `json:"cuisine_name"`
+        Difficulty   string      `json:"difficulty"`
+        Ingredients  []data.Ingredient `json:"ingredients"`
+    }
+
+	var input inputData
 	err := app.readJSON(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
@@ -30,8 +39,9 @@ func (app *application) createRecipeHandler(w http.ResponseWriter, r *http.Reque
 		Instructions: input.Instructions,
 		PrepTime:     input.PrepTime,
 		CookTime:     input.CookTime,
-		CuisineName:  input.CuisineName, // Change this line
+		CuisineName:  input.CuisineName, 
 		Difficulty:   input.Difficulty,
+		Ingredients: input.Ingredients,
 	}
 
 	v := validator.New()
@@ -182,12 +192,12 @@ func (app *application) listRecipeHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	recipes, err := app.models.Recipes.GetAll(input.Title, input.CuisineID, input.Filters)
+	recipes, metadata, err := app.models.Recipes.GetAll(input.Title, input.CuisineID, input.Filters)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-	err = app.writeJSON(w, http.StatusOK, envelope{"recipes": recipes}, nil)
+	err = app.writeJSON(w, http.StatusOK, envelope{"recipes": recipes,"metadata": metadata}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
