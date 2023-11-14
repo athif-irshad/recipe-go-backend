@@ -8,6 +8,6 @@
 
 # Ignore .env files
 *.env
-
+*.exe
 # Ignore largefile.json
 largefile.json

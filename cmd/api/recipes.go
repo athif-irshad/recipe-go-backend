@@ -16,7 +16,7 @@ func (app *application) createRecipeHandler(w http.ResponseWriter, r *http.Reque
 		Instructions string    `json:"instructions"`
 		PrepTime     data.Mins `json:"preparation_time"`
 		CookTime     data.Mins `json:"cooking_time"`
-		CuisineID    int32     `json:"cuisine_id"`
+		CuisineName  string    `json:"cuisine_name"` // Change this line
 		Difficulty   string    `json:"difficulty"`
 	}
 	err := app.readJSON(w, r, &input)
@@ -30,7 +30,7 @@ func (app *application) createRecipeHandler(w http.ResponseWriter, r *http.Reque
 		Instructions: input.Instructions,
 		PrepTime:     input.PrepTime,
 		CookTime:     input.CookTime,
-		CuisineID:    input.CuisineID,
+		CuisineName:  input.CuisineName, // Change this line
 		Difficulty:   input.Difficulty,
 	}
 
@@ -102,7 +102,7 @@ func (app *application) updateRecipeHandler(w http.ResponseWriter, r *http.Reque
 		Instructions string
 		PrepTime     data.Mins
 		CookTime     data.Mins
-		CuisineID    int32
+		CuisineName    string
 		Difficulty   string
 	}
 
@@ -116,7 +116,7 @@ func (app *application) updateRecipeHandler(w http.ResponseWriter, r *http.Reque
 	recipe.Instructions = input.Instructions
 	recipe.PrepTime = input.PrepTime
 	recipe.CookTime = input.CookTime
-	recipe.CuisineID = input.CuisineID
+	recipe.CuisineName = input.CuisineName
 	recipe.Difficulty = input.Difficulty
 	v := validator.New()
 	if data.ValidateRecipe(v, recipe); !v.Valid() {
