@@ -10,14 +10,29 @@ import (
 	"recipe.athif.com/internal/validator"
 )
 
+type Ingredient struct {
+	ID       int    `json:"id"`
+	Name     string `json:"name"`
+	Quantity int    `json:"quantity"`
+	Unit     string `json:"unit"`
+}
+
+type IngredientRow struct {
+	RecipeID     int
+	Name         string
+	Quantity     int
+	Unit         string
+}
+
 type Recipe struct {
-	ID           int64  `json:"id"`
-	Title        string `json:"title"`
-	Instructions string `json:"instructions"`
-	PrepTime     Mins   `json:"prep_time"`
-	CookTime     Mins   `json:"cook_time"`
-	Difficulty   string `json:"difficulty"`
-	CuisineName  string `json:"cuisine_name"`
+	ID           int          `json:"id"`
+	Title        string       `json:"title"`
+	Instructions string       `json:"instructions"`
+	PrepTime     Mins         `json:"preparation_time"`
+	CookTime     Mins         `json:"cooking_time"`
+	CuisineName  string       `json:"cuisine_name"`
+	Difficulty   string       `json:"difficulty"`
+	Ingredients  []Ingredient `json:"ingredients"`
 }
 
 func ValidateRecipe(v *validator.Validator, recipe *Recipe) {
@@ -84,8 +99,7 @@ func (r RecipeModel) Update(recipe *Recipe) error {
 	query := `
 	UPDATE recipes
 	SET recipename = $1, instructions = $2, preparationtime = $3, cookingtime = $4, difficultylevel = $5, cuisinename = (SELECT cuisinename FROM cuisine WHERE cuisinename = $6)
-	WHERE recipeid = $7
-`
+	WHERE recipeid = $7`
 
 	args := []interface{}{recipe.Title, recipe.Instructions, recipe.PrepTime, recipe.CookTime, recipe.Difficulty, recipe.CuisineName, recipe.ID}
 
@@ -123,7 +137,7 @@ func (r RecipeModel) Delete(id int64) error {
 	return nil
 }
 
-func (r RecipeModel) GetAll(title string, cuisineID int, filters Filters) ([]*Recipe, error) {
+func (r RecipeModel) GetAll(title string, cuisineID int, filters Filters) ([]*Recipe, Metadata, error) {
 
 	sortColumn := filters.sortColumn()
 	if sortColumn == "cuisinename" {
@@ -133,51 +147,76 @@ func (r RecipeModel) GetAll(title string, cuisineID int, filters Filters) ([]*Re
 	} else if sortColumn == "id" {
 		sortColumn = "r.recipeid"
 	} else if sortColumn == "difficulty" {
-        sortColumn = `CASE
+		sortColumn = `CASE
                         WHEN r.difficultylevel = 'Easy' THEN 1
                         WHEN r.difficultylevel = 'Intermediate' THEN 2
                         WHEN r.difficultylevel = 'Advanced' THEN 3
                       END`
-    }
+	}
 
 	query := fmt.Sprintf(`
-    SELECT r.recipeid, r.recipename, r.instructions, r.preparationtime, r.cookingtime, r.difficultylevel, c.cuisinename
-    FROM recipes r
-    INNER JOIN cuisine c ON r.cuisineid = c.cuisineid
-    WHERE (LOWER(r.recipename) LIKE LOWER($1) OR $1 = '')
-    AND (r.cuisineid = $2 OR $2 = 0)
-    ORDER BY %s %s, r.recipeid ASC`, sortColumn, filters.sortDirection())
+	SELECT count(*) OVER(), r.recipeid, r.recipename, r.instructions, r.preparationtime, r.cookingtime, r.difficultylevel, c.cuisinename,
+	i.ingredientname, ri.quantity, ri.unit
+	FROM recipes r
+	INNER JOIN cuisine c ON r.cuisineid = c.cuisineid
+	INNER JOIN recipeingredients ri ON r.recipeid = ri.recipeid
+	INNER JOIN ingredients i ON ri.ingredientid = i.ingredientid
+	WHERE (LOWER(r.recipename) LIKE LOWER($1) OR $1 = '')
+	AND (r.cuisineid = $2 OR $2 = 0)
+	ORDER BY %s %s, r.recipeid ASC
+	LIMIT %d OFFSET %d`, sortColumn, filters.sortDirection(), filters.limit(), filters.offset())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	rows, err := r.DB.QueryContext(ctx, query, "%"+title+"%", cuisineID)
 	if err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
 	defer rows.Close()
+	recipes := make(map[int]*Recipe)
+	totalRecords := 0
 
-	recipes := []*Recipe{}
-	for rows.Next() {
-		var recipe Recipe
-		err := rows.Scan(
-			&recipe.ID,
-			&recipe.Title,
-			&recipe.Instructions,
-			&recipe.PrepTime,
-			&recipe.CookTime,
-			&recipe.Difficulty,
-			&recipe.CuisineName,
-		)
-		if err != nil {
-			return nil, err
+		for rows.Next() {
+			var (
+				recipe     Recipe
+				ingredient Ingredient
+			)
+			err := rows.Scan(
+				&totalRecords,
+				&recipe.ID,
+				&recipe.Title,
+				&recipe.Instructions,
+				&recipe.PrepTime,
+				&recipe.CookTime,
+				&recipe.Difficulty,
+				&recipe.CuisineName,
+				&ingredient.Name,
+				&ingredient.Quantity,
+				&ingredient.Unit,
+			)
+			if err != nil {
+				return nil, Metadata{}, err
+			}
+
+			if _, exists := recipes[recipe.ID]; !exists {
+				recipe.Ingredients = []Ingredient{}
+				recipes[recipe.ID] = &recipe
+			}
+
+			recipes[recipe.ID].Ingredients = append(recipes[recipe.ID].Ingredients, ingredient)
 		}
-		recipes = append(recipes, &recipe)
+
+		if err = rows.Err(); err != nil {
+			return nil, Metadata{}, err
+		}
+
+		result := []*Recipe{}
+		for _, recipe := range recipes {
+			result = append(result, recipe)
+		}
+
+		metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+		return result, metadata, nil
 	}
 
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return recipes, nil
-}
