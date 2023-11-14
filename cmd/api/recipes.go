@@ -11,23 +11,14 @@ import (
 )
 
 func (app *application) createRecipeHandler(w http.ResponseWriter, r *http.Request) {
-	type Ingredient struct {
-        Name   string `json:"name"`
-        Quantity string `json:"quantity"`
-        Unit string `json:"unit"`
-    }
-
-    type inputData struct {
-        Title        string      `json:"title"`
-        Instructions string      `json:"instructions"`
-        PrepTime     data.Mins   `json:"preparation_time"`
-        CookTime     data.Mins   `json:"cooking_time"`
-        CuisineName  string      `json:"cuisine_name"`
-        Difficulty   string      `json:"difficulty"`
-        Ingredients  []data.Ingredient `json:"ingredients"`
-    }
-
-	var input inputData
+	var input struct {
+		Title        string    `json:"title"`
+		Instructions string    `json:"instructions"`
+		PrepTime     data.Mins `json:"preparation_time"`
+		CookTime     data.Mins `json:"cooking_time"`
+		CuisineName  string    `json:"cuisine_name"` // Change this line
+		Difficulty   string    `json:"difficulty"`
+	}
 	err := app.readJSON(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
@@ -39,9 +30,8 @@ func (app *application) createRecipeHandler(w http.ResponseWriter, r *http.Reque
 		Instructions: input.Instructions,
 		PrepTime:     input.PrepTime,
 		CookTime:     input.CookTime,
-		CuisineName:  input.CuisineName, 
+		CuisineName:  input.CuisineName, // Change this line
 		Difficulty:   input.Difficulty,
-		Ingredients: input.Ingredients,
 	}
 
 	v := validator.New()
@@ -183,7 +173,7 @@ func (app *application) listRecipeHandler(w http.ResponseWriter, r *http.Request
 	input.CuisineID = app.readInt(qs, "cuisineid", 0, v)
 
 	input.Filters.Page = app.readInt(qs, "page", 1, v)
-	input.Filters.PageSize = app.readInt(qs, "pagesize", 20, v)
+	input.Filters.PageSize = app.readInt(qs, "pagesize", 50, v)
 
 	input.Filters.Sort = app.readString(qs, "sort", "id")
 	input.Filters.SortSafelist = []string{"id", "title", "difficulty", "cuisinename", "-id", "-title", "-difficulty", "-cuisinename"}
