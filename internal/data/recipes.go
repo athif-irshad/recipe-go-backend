@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
+	"strings"
 	"time"
 
 	"recipe.athif.com/internal/validator"
@@ -12,13 +14,12 @@ import (
 
 type Ingredient struct {
 	// IngredientID   int64   `json:"ingredient_id"`
-	IngredientName string  `json:"ingredient_name"`
-	Quantity       float64 `json:"quantity"`
-	Unit           string  `json:"unit"`
+	IngredientName string `json:"ingredient_name"`
+	Quantity       float32    `json:"quantity"`
+	Unit           string `json:"unit"`
 }
-
 type Recipe struct {
-	ID           int64        `json:"id"`
+	ID           int          `json:"id"`
 	Title        string       `json:"title"`
 	Instructions string       `json:"instructions"`
 	PrepTime     Mins         `json:"prep_time"`
@@ -226,4 +227,102 @@ func (r RecipeModel) GetAll(title string, cuisineID int, filters Filters) ([]*Re
 
 	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
 	return result, metadata, nil
+}
+
+func (m *RecipeModel) Search(ingredients []string) ([]*Recipe, error) {
+	// Log the ingredients.
+	log.Printf("Ingredients: %v\n", ingredients)
+
+	// Return an error if the ingredients slice is empty.
+	if len(ingredients) == 0 {
+		return nil, errors.New("at least one ingredient must be provided")
+	}
+
+	// Generate a placeholder for each ingredient in the slice.
+	// Convert each ingredient to lowercase.
+	for i, ingredient := range ingredients {
+		ingredients[i] = strings.ToLower(ingredient)
+	}
+
+	// Generate a placeholder for each ingredient in the slice.
+	placeholders := ""
+	for i := range ingredients {
+		if i > 0 {
+			placeholders += ","
+		}
+		placeholders += fmt.Sprintf("$%d", i+1)
+	}
+
+	query := fmt.Sprintf(`
+    SELECT rv2.recipeid, rv2.recipename, rv2.instructions, rv2.preparationtime, rv2.cookingtime, rv2.difficultylevel, c.cuisinename, rv2.ingredientname, rv2.quantity, rv2.unit
+    FROM recipe_view rv2
+    INNER JOIN cuisine c ON rv2.cuisineid = c.cuisineid
+    INNER JOIN (
+        SELECT recipeid
+        FROM recipe_view rv1
+        WHERE LOWER(ingredientname) IN (%s)
+        GROUP BY recipeid
+        HAVING COUNT(DISTINCT LOWER(ingredientname)) = %d
+    ) r ON rv2.recipeid = r.recipeid::bigint
+`, placeholders, len(ingredients))
+	// Log the generated query.
+	log.Printf("Query: %s\n", query)
+
+	args := make([]interface{}, len(ingredients))
+	for i, ingredient := range ingredients {
+		args[i] = ingredient
+	}
+
+	// Log the arguments.
+	log.Printf("Arguments: %v\n", args)
+
+	// Pass the args slice to the DB.Query method.
+	rows, err := m.DB.Query(query, args...)
+	if err != nil {
+		// Log the error.
+		log.Printf("Error executing query: %v\n", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	recipes := make(map[int]*Recipe)
+
+	for rows.Next() {
+		var recipe Recipe
+		var ingredient Ingredient
+
+		err := rows.Scan(
+			&recipe.ID,
+			&recipe.Title,
+			&recipe.Instructions,
+			&recipe.PrepTime,
+			&recipe.CookTime,
+			&recipe.Difficulty,
+			&recipe.CuisineName,
+			&ingredient.IngredientName,
+			&ingredient.Quantity,
+			&ingredient.Unit,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if existingRecipe, ok := recipes[recipe.ID]; ok {
+			existingRecipe.Ingredients = append(existingRecipe.Ingredients, ingredient)
+		} else {
+			recipe.Ingredients = []Ingredient{ingredient}
+			recipes[recipe.ID] = &recipe
+		}
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Convert the map to a slice.
+	result := make([]*Recipe, 0, len(recipes))
+	for _, recipe := range recipes {
+		result = append(result, recipe)
+	}
+	return result, nil
 }

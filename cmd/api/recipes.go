@@ -102,7 +102,7 @@ func (app *application) updateRecipeHandler(w http.ResponseWriter, r *http.Reque
 		Instructions string
 		PrepTime     data.Mins
 		CookTime     data.Mins
-		CuisineName    string
+		CuisineName  string
 		Difficulty   string
 	}
 
@@ -187,7 +187,31 @@ func (app *application) listRecipeHandler(w http.ResponseWriter, r *http.Request
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-	err = app.writeJSON(w, http.StatusOK, envelope{"recipes": recipes,"metadata": metadata}, nil)
+	err = app.writeJSON(w, http.StatusOK, envelope{"recipes": recipes, "metadata": metadata}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) searchRecipesHandler(w http.ResponseWriter, r *http.Request) {
+	// Create a new validator instance
+	//v := validator.New()
+	var input struct {
+		Ingredients []string
+	}
+
+	qs := r.URL.Query()
+	input.Ingredients = app.readCSV(qs, "ingredients", []string{}) // Use readCSV here
+
+	// Call the Search method on the Recipes model.
+	recipes, err := app.models.Recipes.Search(input.Ingredients)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	// Write the returned recipes to the response.
+	err = app.writeJSON(w, http.StatusOK, envelope{"recipes": recipes}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

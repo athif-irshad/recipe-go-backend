@@ -3,6 +3,7 @@
 
 # Ignore postgres-data folder
 /postgres-data
+/react
 
 /migrations
 
