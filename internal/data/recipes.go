@@ -14,9 +14,9 @@ import (
 
 type Ingredient struct {
 	// IngredientID   int64   `json:"ingredient_id"`
-	IngredientName string `json:"ingredient_name"`
-	Quantity       float32    `json:"quantity"`
-	Unit           string `json:"unit"`
+	IngredientName string  `json:"ingredient_name"`
+	Quantity       float32 `json:"quantity"`
+	Unit           string  `json:"unit"`
 }
 type Recipe struct {
 	ID           int          `json:"id"`
@@ -166,7 +166,7 @@ func (r RecipeModel) GetAll(title string, cuisineID int, filters Filters) ([]*Re
 	}
 
 	query := fmt.Sprintf(`
-    SELECT count(*) OVER(), r.recipeid, r.recipename, r.instructions, r.preparationtime, r.cookingtime, r.difficultylevel, c.cuisinename, i.ingredientname, ri.quantity, ri.unit
+    SELECT  r.recipeid, r.recipename, r.instructions, r.preparationtime, r.cookingtime, r.difficultylevel, c.cuisinename, i.ingredientname, ri.quantity, ri.unit
     FROM recipes r
     INNER JOIN cuisine c ON r.cuisineid = c.cuisineid
     INNER JOIN recipeingredients ri ON r.recipeid = ri.recipeid
@@ -186,13 +186,13 @@ func (r RecipeModel) GetAll(title string, cuisineID int, filters Filters) ([]*Re
 	defer rows.Close()
 
 	recipes := make(map[int]*Recipe)
-	totalRecords := 0
+	//totalRecords := 0
 
 	for rows.Next() {
 		var recipe Recipe
 		var ingredient Ingredient
 		err := rows.Scan(
-			&totalRecords,
+			// &totalRecords,
 			&recipe.ID,
 			&recipe.Title,
 			&recipe.Instructions,
@@ -223,6 +223,19 @@ func (r RecipeModel) GetAll(title string, cuisineID int, filters Filters) ([]*Re
 	result := []*Recipe{}
 	for _, recipe := range recipes {
 		result = append(result, recipe)
+	}
+
+	countQuery := `
+    SELECT COUNT(DISTINCT recipeid)
+    FROM recipes
+    WHERE (LOWER(recipename) LIKE LOWER($1) OR $1 = '')
+    AND (cuisineid = $2 OR $2 = 0)
+    `
+
+	var totalRecords int
+	err = r.DB.QueryRowContext(ctx, countQuery, "%"+title+"%", cuisineID).Scan(&totalRecords)
+	if err != nil {
+		return nil, Metadata{}, err
 	}
 
 	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
