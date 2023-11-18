@@ -340,3 +340,30 @@ func (m *RecipeModel) Search(ingredients []string) ([]*Recipe, error) {
 	}
 	return result, nil
 }
+
+func (m *RecipeModel) ListAllIngredients() ([]string, error) {
+    query := `SELECT DISTINCT ingredientname FROM ingredients`
+
+    // Execute the query.
+    rows, err := m.DB.QueryContext(context.Background(), query)
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
+
+    ingredients := make([]string, 0)
+    for rows.Next() {
+        var ingredient string
+        if err := rows.Scan(&ingredient); err != nil {
+            return nil, err
+        }
+        ingredients = append(ingredients, ingredient)
+    }
+
+    // Check for errors from iterating over rows.
+    if err := rows.Err(); err != nil {
+        return nil, err
+    }
+
+    return ingredients, nil
+}
