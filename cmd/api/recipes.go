@@ -173,7 +173,7 @@ func (app *application) listRecipeHandler(w http.ResponseWriter, r *http.Request
 	input.CuisineID = app.readInt(qs, "cuisineid", 0, v)
 
 	input.Filters.Page = app.readInt(qs, "page", 1, v)
-	input.Filters.PageSize = app.readInt(qs, "pagesize", 50, v)
+	//input.Filters.PageSize = app.readInt(qs, "pagesize", 20, v)
 
 	input.Filters.Sort = app.readString(qs, "sort", "id")
 	input.Filters.SortSafelist = []string{"id", "title", "difficulty", "cuisinename", "-id", "-title", "-difficulty", "-cuisinename"}

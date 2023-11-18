@@ -4,7 +4,7 @@
 # Ignore postgres-data folder
 /postgres-data
 /react
-
+/cmd/examples
 /migrations
 
 # Ignore .env files

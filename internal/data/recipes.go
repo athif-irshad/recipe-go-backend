@@ -173,8 +173,9 @@ func (r RecipeModel) GetAll(title string, cuisineID int, filters Filters) ([]*Re
     INNER JOIN ingredients i ON ri.ingredientid = i.ingredientid
     WHERE (LOWER(r.recipename) LIKE LOWER($1) OR $1 = '')
     AND (r.cuisineid = $2 OR $2 = 0)
-    ORDER BY %s %s, r.recipeid ASC
-	LIMIT %d OFFSET %d`, sortColumn, filters.sortDirection(), filters.limit(), filters.offset())
+    ORDER BY %s %s, r.recipeid ASC`,
+	//LIMIT %d OFFSET %d`, 
+	sortColumn, filters.sortDirection())//, filters.limit(), filters.offset())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -238,7 +239,7 @@ func (r RecipeModel) GetAll(title string, cuisineID int, filters Filters) ([]*Re
 		return nil, Metadata{}, err
 	}
 
-	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+	metadata := calculateMetadata(totalRecords, filters.Page)//, filters.PageSize)
 	return result, metadata, nil
 }
 
