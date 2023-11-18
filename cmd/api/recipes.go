@@ -216,3 +216,18 @@ func (app *application) searchRecipesHandler(w http.ResponseWriter, r *http.Requ
 		app.serverErrorResponse(w, r, err)
 	}
 }
+
+func (app *application) listAllIngredientsHandler(w http.ResponseWriter, r *http.Request) {
+    // Call the ListAllIngredients method on the RecipeModel.
+    ingredients, err := app.models.Recipes.ListAllIngredients()
+    if err != nil {
+        app.serverErrorResponse(w, r, err)
+        return
+    }
+
+    // Write the returned ingredients to the response.
+    err = app.writeJSON(w, http.StatusOK, envelope{"ingredients": ingredients}, nil)
+    if err != nil {
+        app.serverErrorResponse(w, r, err)
+    }
+}
