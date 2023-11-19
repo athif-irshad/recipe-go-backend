@@ -34,9 +34,14 @@ type application struct {
 }
 
 func main() {
-	// Declare an instance of the config struct.
+	port := os.Getenv("PORT") // Get the port from environment variable
+
+    if port == "" {
+        log.Fatal("$PORT must be set")
+    }
+	
 	var cfg config
-	flag.IntVar(&cfg.port, "port", 4000, "API server port")
+	//flag.IntVar(&cfg.port, "port", 4000, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
 	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL max idle connections")
