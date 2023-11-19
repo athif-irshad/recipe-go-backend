@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	_ "github.com/heroku/x/hmetrics/onload"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"recipe.athif.com/internal/data"
 )
@@ -18,8 +19,8 @@ const version = "1.0.0"
 
 type config struct {
 	//port int
-	env  string
-	db   struct {
+	env string
+	db  struct {
 		dsn          string
 		maxOpenConns int
 		maxIdleConns int
@@ -36,9 +37,9 @@ type application struct {
 func main() {
 	port := os.Getenv("PORT") // Get the port from environment variable
 
-    if port == "" {
-        log.Fatal("$PORT must be set")
-    }
+	if port == "" {
+		log.Fatal("$PORT must be set")
+	}
 
 	var cfg config
 	//flag.IntVar(&cfg.port, "port", 4000, "API server port")
