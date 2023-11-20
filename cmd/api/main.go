@@ -37,8 +37,11 @@ type application struct {
 func main() {
 	port := os.Getenv("PORT") // Get the port from environment variable
 
+	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
+
 	if port == "" {
-		log.Fatal("$PORT must be set")
+		logger.Printf("$PORT has not been set, setting port to :4000")
+		port = "4000"
 	}
 
 	var cfg config
@@ -50,7 +53,6 @@ func main() {
 	flag.StringVar(&cfg.db.dsn, "db-dsn", os.Getenv("DB_DSN"), "PostgreSQL DSN")
 	flag.Parse()
 
-	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
 	// Declare an instance of the application struct, containing the config struct and
 	// the logger.
 	DB, err := openDB(cfg)

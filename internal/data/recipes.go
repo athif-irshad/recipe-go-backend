@@ -247,10 +247,10 @@ func (m *RecipeModel) Search(ingredients []string) ([]*Recipe, error) {
 	// Log the ingredients.
 	//log.Printf("Ingredients: %v\n", ingredients)
 
-	// Return an error if the ingredients slice is empty.
-	// if len(ingredients) == 0 {
-	// 	return nil, errors.New("at least one ingredient must be provided")
-	// }
+	//Return an error if the ingredients slice is empty.
+	if len(ingredients) == 0 {
+		return nil, errors.New("at least one ingredient must be provided")
+	}
 
 	// Generate a placeholder for each ingredient in the slice.
 	// Convert each ingredient to lowercase.
