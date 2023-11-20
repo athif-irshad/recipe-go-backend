@@ -245,12 +245,12 @@ func (r RecipeModel) GetAll(title string, cuisineID int, filters Filters) ([]*Re
 
 func (m *RecipeModel) Search(ingredients []string) ([]*Recipe, error) {
 	// Log the ingredients.
-	log.Printf("Ingredients: %v\n", ingredients)
+	//log.Printf("Ingredients: %v\n", ingredients)
 
 	// Return an error if the ingredients slice is empty.
-	if len(ingredients) == 0 {
-		return nil, errors.New("at least one ingredient must be provided")
-	}
+	// if len(ingredients) == 0 {
+	// 	return nil, errors.New("at least one ingredient must be provided")
+	// }
 
 	// Generate a placeholder for each ingredient in the slice.
 	// Convert each ingredient to lowercase.
@@ -280,7 +280,7 @@ func (m *RecipeModel) Search(ingredients []string) ([]*Recipe, error) {
     ) r ON rv2.recipeid = r.recipeid::bigint
 `, placeholders, len(ingredients))
 	// Log the generated query.
-	log.Printf("Query: %s\n", query)
+	//log.Printf("Query: %s\n", query)
 
 	args := make([]interface{}, len(ingredients))
 	for i, ingredient := range ingredients {
@@ -288,7 +288,7 @@ func (m *RecipeModel) Search(ingredients []string) ([]*Recipe, error) {
 	}
 
 	// Log the arguments.
-	log.Printf("Arguments: %v\n", args)
+//	log.Printf("Arguments: %v\n", args)
 
 	// Pass the args slice to the DB.Query method.
 	rows, err := m.DB.Query(query, args...)
