@@ -6,9 +6,8 @@
 /react
 /cmd/examples
 /migrations
-
+/.idea
 # Ignore .env files
 *.env
 *.exe
-# Ignore largefile.json
-largefile.json
+
