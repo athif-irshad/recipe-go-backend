@@ -26,7 +26,8 @@ type Recipe struct {
 	CookTime     Mins         `json:"cook_time"`
 	Difficulty   string       `json:"difficulty"`
 	CuisineName  string       `json:"cuisine_name"`
-	Ingredients  []Ingredient `json:"ingredients"` // Add this line
+	Ingredients  []Ingredient `json:"ingredients"` 
+	ImageLink    string
 }
 
 func ValidateRecipe(v *validator.Validator, recipe *Recipe) {
@@ -68,11 +69,12 @@ func (r RecipeModel) Get(id int64) (*Recipe, error) {
 	}
 
 	query := `
-    SELECT r.recipeid, r.recipename, r.instructions, r.preparationtime, r.cookingtime, r.difficultylevel, c.cuisinename, i.ingredientname, ri.quantity, ri.unit
+    SELECT r.recipeid, r.recipename, r.instructions, r.preparationtime, r.cookingtime, r.difficultylevel, c.cuisinename, i.ingredientname, ri.quantity, ri.unit, img.imagelink
     FROM recipes r
     INNER JOIN cuisine c ON r.cuisineid = c.cuisineid
     INNER JOIN recipeingredients ri ON r.recipeid = ri.recipeid
     INNER JOIN ingredients i ON ri.ingredientid = i.ingredientid
+	INNER JOIN recipe_images img ON r.recipeid = img.recipeid
     WHERE r.recipeid = $1
     `
 
@@ -88,7 +90,7 @@ func (r RecipeModel) Get(id int64) (*Recipe, error) {
 	var recipe Recipe
 	for rows.Next() {
 		var ingredient Ingredient
-		err = rows.Scan(&recipe.ID, &recipe.Title, &recipe.Instructions, &recipe.PrepTime, &recipe.CookTime, &recipe.Difficulty, &recipe.CuisineName, &ingredient.IngredientName, &ingredient.Quantity, &ingredient.Unit)
+		err = rows.Scan(&recipe.ID, &recipe.Title, &recipe.Instructions, &recipe.PrepTime, &recipe.CookTime, &recipe.Difficulty, &recipe.CuisineName, &ingredient.IngredientName, &ingredient.Quantity, &ingredient.Unit, &recipe.ImageLink)
 		if err != nil {
 			return nil, err
 		}
@@ -166,11 +168,12 @@ func (r RecipeModel) GetAll(title string, cuisineID int, filters Filters) ([]*Re
 	}
 
 	query := fmt.Sprintf(`
-    SELECT  r.recipeid, r.recipename, r.instructions, r.preparationtime, r.cookingtime, r.difficultylevel, c.cuisinename, i.ingredientname, ri.quantity, ri.unit
+    SELECT  r.recipeid, r.recipename, r.instructions, r.preparationtime, r.cookingtime, r.difficultylevel, c.cuisinename, i.ingredientname, ri.quantity, ri.unit, img.imageLink
     FROM recipes r
     INNER JOIN cuisine c ON r.cuisineid = c.cuisineid
     INNER JOIN recipeingredients ri ON r.recipeid = ri.recipeid
     INNER JOIN ingredients i ON ri.ingredientid = i.ingredientid
+	INNER JOIN recipe_images img ON r.recipeid = img.recipeid
     WHERE (LOWER(r.recipename) LIKE LOWER($1) OR $1 = '')
     AND (r.cuisineid = $2 OR $2 = 0)
     ORDER BY %s %s, r.recipeid ASC`,
@@ -204,6 +207,7 @@ func (r RecipeModel) GetAll(title string, cuisineID int, filters Filters) ([]*Re
 			&ingredient.IngredientName,
 			&ingredient.Quantity,
 			&ingredient.Unit,
+			&recipe.ImageLink,
 		)
 		if err != nil {
 			return nil, Metadata{}, err
