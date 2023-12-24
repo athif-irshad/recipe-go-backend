@@ -25,15 +25,6 @@ This is a comprehensive RESTful API designed for managing culinary recipes. The 
 ### Running the Application
 
 1. Start the server: `go run main.go`
-2. ## API Endpoints
-
-- `POST /v1/recipes`: Create a new recipe.
-- `GET /v1/recipes/{id}`: Retrieve a recipe by its ID.
-- `PUT /v1/recipes/{id}`: Update a recipe by its ID.
-- `DELETE /v1/recipes/{id}`: Delete a recipe by its ID.
-- `GET /v1/recipes`: List all recipes.
-- `GET /v1/recipes/search`: Search for recipes based on ingredients.
-- `GET /v1/ingredients`: List all ingredients used in the recipes.
 
 ## Contributing
 
